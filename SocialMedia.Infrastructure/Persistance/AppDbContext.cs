@@ -19,6 +19,12 @@ public class AppDbContext
     {
     }
 
+    public DbSet<Conversation> Conversations
+    => Set<Conversation>();
+
+    public DbSet<Message> Messages
+        => Set<Message>();
+
     public DbSet<FriendRequest> FriendRequests
 => Set<FriendRequest>();
 

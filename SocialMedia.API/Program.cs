@@ -7,9 +7,11 @@ using SocialMedia.Application.Notifications.Interfaces;
 using SocialMedia.Domain.Entities;
 using SocialMedia.Infrastructure.Notifications;
 using SocialMedia.Infrastructure.Persistence;
+using SocialMedia.Infrastructure.Realtime;
 using SocialMedia.Infrastructure.RealTime;
 using System;
 using System.Text;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,7 +19,14 @@ var builder = WebApplication.CreateBuilder(args);
 // Controllers
 // =========================
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions
+            .Converters
+            .Add(new JsonStringEnumConverter());
+    });
+
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -201,6 +210,6 @@ app.MapControllers();
 
 // SignalR hub əlavə edəndə:
 app.MapHub<NotificationHub>("/hubs/notifications");
-// app.MapHub<ChatHub>("/hubs/chat");
+app.MapHub<ChatHub>("/hubs/chat");
 
 app.Run();
