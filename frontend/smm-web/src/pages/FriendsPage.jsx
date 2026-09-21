@@ -21,82 +21,161 @@ import {
 } from '@tanstack/react-query';
 
 import {
+  useNavigate,
+  useSearchParams,
+} from 'react-router-dom';
+
+import {
   acceptFriendRequest,
-  getIncomingRequests,
+  cancelFriendRequest,
   getFriends,
+  getIncomingRequests,
   rejectFriendRequest,
   searchUsers,
   sendFriendRequest,
 } from '../features/friends/api/friendsApi';
 
+import {
+  openConversation,
+} from '../features/messages/api/messagesApi';
+
 import PeopleCard from '../features/friends/components/PeopleCard';
+
 import FriendRequestCard from '../features/friends/components/FriendRequestCard';
 
 export default function FriendsPage() {
-  const queryClient = useQueryClient();
+  const queryClient =
+    useQueryClient();
 
-  const [tab, setTab] = useState(0);
-  const [search, setSearch] = useState('');
+  const navigate =
+    useNavigate();
 
-  const peopleQuery = useQuery({
-    queryKey: ['people', search],
-    queryFn: () =>
-      searchUsers(search),
-  });
+  const [searchParams] =
+    useSearchParams();
 
-  const requestsQuery = useQuery({
-    queryKey: ['friend-requests'],
-    queryFn: getIncomingRequests,
-  });
+  const initialSearch =
+    searchParams.get(
+      'search'
+    ) ?? '';
 
-  const friendsQuery = useQuery({
-    queryKey: ['friends'],
-    queryFn: getFriends,
-  });
+  const [tab, setTab] =
+    useState(0);
 
-  const sendMutation = useMutation({
-    mutationFn: sendFriendRequest,
+  const [search, setSearch] =
+    useState(initialSearch);
 
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['people'],
-      });
+  const peopleQuery =
+    useQuery({
+      queryKey: [
+        'people',
+        search,
+      ],
 
-      queryClient.invalidateQueries({
-        queryKey: ['friend-requests'],
-      });
-    },
-  });
+      queryFn: () =>
+        searchUsers(search),
+    });
 
-  const acceptMutation = useMutation({
-    mutationFn: acceptFriendRequest,
+  const requestsQuery =
+    useQuery({
+      queryKey: [
+        'friend-requests',
+      ],
 
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['friend-requests'],
-      });
+      queryFn:
+        getIncomingRequests,
+    });
 
-      queryClient.invalidateQueries({
-        queryKey: ['friends'],
-      });
-    },
-  });
+  const friendsQuery =
+    useQuery({
+      queryKey: [
+        'friends',
+      ],
 
-  const rejectMutation = useMutation({
-    mutationFn: rejectFriendRequest,
+      queryFn:
+        getFriends,
+    });
 
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['friend-requests'],
-      });
-    },
-  });
+  function invalidateFriendData() {
+    queryClient.invalidateQueries({
+      queryKey: ['people'],
+    });
+
+    queryClient.invalidateQueries({
+      queryKey: [
+        'friend-requests',
+      ],
+    });
+
+    queryClient.invalidateQueries({
+      queryKey: [
+        'friends',
+      ],
+    });
+  }
+
+  const sendMutation =
+    useMutation({
+      mutationFn:
+        sendFriendRequest,
+
+      onSuccess:
+        invalidateFriendData,
+    });
+
+  const cancelMutation =
+    useMutation({
+      mutationFn:
+        cancelFriendRequest,
+
+      onSuccess:
+        invalidateFriendData,
+    });
+
+  const acceptMutation =
+    useMutation({
+      mutationFn:
+        acceptFriendRequest,
+
+      onSuccess:
+        invalidateFriendData,
+    });
+
+  const rejectMutation =
+    useMutation({
+      mutationFn:
+        rejectFriendRequest,
+
+      onSuccess:
+        invalidateFriendData,
+    });
+
+  const openChatMutation =
+    useMutation({
+      mutationFn:
+        openConversation,
+
+      onSuccess: (
+        result
+      ) => {
+        navigate(
+          `/messages?conversation=${result.conversationId}`
+        );
+      },
+    });
+
+  const loading =
+    sendMutation.isPending ||
+    cancelMutation.isPending ||
+    acceptMutation.isPending ||
+    rejectMutation.isPending ||
+    openChatMutation.isPending;
 
   return (
     <Box
       sx={{
-        minHeight: '100vh',
-        bgcolor: '#f6f8fc',
+        minHeight:
+          'calc(100vh - 74px)',
+
         py: 4,
       }}
     >
@@ -104,12 +183,14 @@ export default function FriendsPage() {
         <Box mb={3}>
           <Typography
             variant="h4"
-            fontWeight={900}
+            fontWeight={950}
           >
             Friends
           </Typography>
 
-          <Typography color="text.secondary">
+          <Typography
+            color="text.secondary"
+          >
             Discover people and manage your connections.
           </Typography>
         </Box>
@@ -118,22 +199,32 @@ export default function FriendsPage() {
           elevation={0}
           sx={{
             mb: 3,
+
             px: 2,
+
             borderRadius: 4,
+
             border: '1px solid',
-            borderColor: 'divider',
+
+            borderColor:
+              'rgba(148,163,184,.16)',
           }}
         >
           <Tabs
             value={tab}
-            onChange={(_, value) =>
+            onChange={(
+              _,
+              value
+            ) =>
               setTab(value)
             }
           >
             <Tab label="Discover" />
+
             <Tab
               label={`Requests (${requestsQuery.data?.length ?? 0})`}
             />
+
             <Tab
               label={`Friends (${friendsQuery.data?.length ?? 0})`}
             />
@@ -145,19 +236,26 @@ export default function FriendsPage() {
             <TextField
               fullWidth
               value={search}
-              onChange={(event) =>
+              onChange={(
+                event
+              ) =>
                 setSearch(
-                  event.target.value
+                  event.target
+                    .value
                 )
               }
               placeholder="Search people..."
               sx={{
                 mb: 3,
 
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 999,
-                  bgcolor: 'white',
-                },
+                '& .MuiOutlinedInput-root':
+                  {
+                    borderRadius:
+                      999,
+
+                    bgcolor:
+                      'white',
+                  },
               }}
               slotProps={{
                 input: {
@@ -173,10 +271,14 @@ export default function FriendsPage() {
             <Box
               sx={{
                 display: 'grid',
+
                 gridTemplateColumns: {
                   xs: '1fr',
-                  md: 'repeat(2, 1fr)',
+
+                  md:
+                    'repeat(2,1fr)',
                 },
+
                 gap: 2,
               }}
             >
@@ -185,11 +287,44 @@ export default function FriendsPage() {
                   <PeopleCard
                     key={user.id}
                     user={user}
-                    loading={
-                      sendMutation.isPending
-                    }
+                    loading={loading}
+
                     onAdd={(id) =>
-                      sendMutation.mutate(id)
+                      sendMutation.mutate(
+                        id
+                      )
+                    }
+
+                    onCancel={(
+                      requestId
+                    ) =>
+                      cancelMutation.mutate(
+                        requestId
+                      )
+                    }
+
+                    onAccept={(
+                      requestId
+                    ) =>
+                      acceptMutation.mutate(
+                        requestId
+                      )
+                    }
+
+                    onReject={(
+                      requestId
+                    ) =>
+                      rejectMutation.mutate(
+                        requestId
+                      )
+                    }
+
+                    onMessage={(
+                      userId
+                    ) =>
+                      openChatMutation.mutate(
+                        userId
+                      )
                     }
                   />
                 )
@@ -200,35 +335,27 @@ export default function FriendsPage() {
 
         {tab === 1 && (
           <Stack spacing={2}>
-            {requestsQuery.data?.length ===
-              0 && (
-              <Paper
-                sx={{
-                  p: 4,
-                  textAlign: 'center',
-                  borderRadius: 4,
-                }}
-              >
-                <Typography>
-                  No pending friend requests.
-                </Typography>
-              </Paper>
-            )}
-
             {requestsQuery.data?.map(
               (request) => (
                 <FriendRequestCard
                   key={request.id}
                   request={request}
-                  loading={
-                    acceptMutation.isPending ||
-                    rejectMutation.isPending
+                  loading={loading}
+
+                  onAccept={(
+                    id
+                  ) =>
+                    acceptMutation.mutate(
+                      id
+                    )
                   }
-                  onAccept={(id) =>
-                    acceptMutation.mutate(id)
-                  }
-                  onReject={(id) =>
-                    rejectMutation.mutate(id)
+
+                  onReject={(
+                    id
+                  ) =>
+                    rejectMutation.mutate(
+                      id
+                    )
                   }
                 />
               )
@@ -240,25 +367,26 @@ export default function FriendsPage() {
           <Stack spacing={2}>
             {friendsQuery.data?.map(
               (friend) => (
-                <Paper
+                <PeopleCard
                   key={friend.id}
-                  sx={{
-                    p: 2,
-                    borderRadius: 4,
-                  }}
-                >
-                  <Typography fontWeight={800}>
-                    {friend.firstName}{' '}
-                    {friend.lastName}
-                  </Typography>
 
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                  >
-                    @{friend.userName}
-                  </Typography>
-                </Paper>
+                  user={{
+                    ...friend,
+
+                    relationshipStatus:
+                      'Friends',
+                  }}
+
+                  loading={loading}
+
+                  onMessage={(
+                    userId
+                  ) =>
+                    openChatMutation.mutate(
+                      userId
+                    )
+                  }
+                />
               )
             )}
           </Stack>
